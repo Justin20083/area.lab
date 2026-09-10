@@ -161,7 +161,7 @@ export function Tips(props: { api: TuiPluginApi; connected?: boolean }) {
   )
 }
 
-const TIPS: Tip[] = [
+export const TIPS: Tip[] = [
   "Type {highlight}@{/highlight} followed by a filename to fuzzy search and attach files",
   "Start a message with {highlight}!{/highlight} to run shell commands (e.g., {highlight}!ls -la{/highlight})",
   (shortcuts) => press(shortcuts.agentCycle(), "to cycle between Build and Plan agents"),
