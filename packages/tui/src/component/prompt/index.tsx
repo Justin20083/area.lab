@@ -1417,11 +1417,11 @@ export function Prompt(props: PromptProps) {
                 justifyContent={status().type === "retry" ? "space-between" : "flex-start"}
               >
                 <box flexShrink={0} flexDirection="row" gap={1}>
-                  <text fg={RGBA.fromHex("#7dd3fc")} flexShrink={0}>
+                  <text fg={RGBA.fromHex("#22c55e")} flexShrink={0}>
                     ::
                   </text>
                   <Show when={status().type !== "retry"}>
-                    <text fg={RGBA.fromHex("#7dd3fc")}>Working</text>
+                    <text fg={RGBA.fromHex("#22c55e")}>Working</text>
                   </Show>
                   <box flexDirection="row" gap={1} flexShrink={0}>
                     {(() => {

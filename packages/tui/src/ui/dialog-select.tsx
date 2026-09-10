@@ -7,7 +7,7 @@ import {
   type Renderable,
 } from "@opentui/core"
 import type { Binding } from "@opentui/keymap"
-import { useTheme, selectedForeground } from "../context/theme"
+import { useTheme } from "../context/theme"
 import { entries, filter, flatMap, groupBy, pipe } from "remeda"
 import { batch, createEffect, createMemo, createSignal, For, Show, type JSX, on, onCleanup } from "solid-js"
 import { createStore } from "solid-js/store"
@@ -83,9 +83,11 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
   type VisibleAction = (Action & { label: string }) | FooterHint
 
   const dialog = useDialog()
-  const { theme } = useTheme()
+  const { theme, mode } = useTheme()
   const tuiConfig = useTuiConfig()
   const scrollAcceleration = createMemo(() => getScrollAcceleration(tuiConfig))
+  const selectionBg = createMemo(() => (mode() === "light" ? RGBA.fromHex("#1a1a1a") : RGBA.fromHex("#000000")))
+  const selectionFg = RGBA.fromHex("#ffffff")
 
   const [store, setStore] = createStore({
     selected: 0,
@@ -536,20 +538,19 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
     const item = action.item
     const active = createMemo(() => isActionFocused(item))
     const disabled = createMemo(() => isActionDisabled(item))
-    const fg = selectedForeground(theme)
     return (
       <box
         flexDirection="row"
-        backgroundColor={active() ? theme.primary : RGBA.fromInts(0, 0, 0, 0)}
+        backgroundColor={active() ? selectionBg() : RGBA.fromInts(0, 0, 0, 0)}
         onMouseUp={() => triggerAction(item)}
       >
         <text
-          fg={disabled() ? theme.textMuted : active() ? fg : theme.text}
+          fg={disabled() ? theme.textMuted : active() ? selectionFg : theme.text}
           attributes={active() ? TextAttributes.BOLD : undefined}
         >
           {item.title}
         </text>
-        <text fg={disabled() ? theme.textMuted : active() ? fg : theme.textMuted}> {item.label}</text>
+        <text fg={disabled() ? theme.textMuted : active() ? selectionFg : theme.textMuted}> {item.label}</text>
       </box>
     )
   }
@@ -578,7 +579,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
                 })
               }}
               focusedBackgroundColor={theme.backgroundPanel}
-              cursorColor={theme.primary}
+              cursorColor={theme.text}
               cursorStyle={tuiConfig.cursor}
               focusedTextColor={theme.textMuted}
               ref={(r) => {
@@ -623,7 +624,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
                       <Show
                         when={options[0]?.categoryView}
                         fallback={
-                          <text fg={theme.accent} attributes={TextAttributes.BOLD}>
+                          <text fg={theme.textMuted} attributes={TextAttributes.BOLD}>
                             {category}
                           </text>
                         }
@@ -673,7 +674,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
                               active()
                                 ? actionFocused()
                                   ? theme.backgroundElement
-                                  : (option.bg ?? theme.primary)
+                                  : (option.bg ?? selectionBg())
                                 : RGBA.fromInts(0, 0, 0, 0)
                             }
                           >
@@ -743,11 +744,11 @@ function Option(props: {
   onMouseOver?: () => void
 }) {
   const { theme } = useTheme()
-  const fg = selectedForeground(theme)
+  const selectionFg = RGBA.fromHex("#ffffff")
   const text = createMemo(() => {
-    if (props.active && !props.muted) return fg
+    if (props.active && !props.muted) return selectionFg
     if (props.muted && (props.active || props.current)) return theme.textMuted
-    if (props.current) return theme.primary
+    if (props.current) return theme.text
     return theme.text
   })
 
@@ -778,12 +779,15 @@ function Option(props: {
               ? Locale.truncateLeft(props.title, props.titleWidth ?? 61)
               : Locale.truncate(props.title, props.titleWidth ?? 61))}
         <Show when={props.description}>
-          <span style={{ fg: props.active && !props.muted ? fg : theme.textMuted }}> {props.description}</span>
+          <span style={{ fg: props.active && !props.muted ? selectionFg : theme.textMuted }}>
+            {" "}
+            {props.description}
+          </span>
         </Show>
       </text>
       <Show when={props.footer}>
         <box flexShrink={0}>
-          <text fg={props.active && !props.muted ? fg : theme.textMuted}>{props.footer}</text>
+          <text fg={props.active && !props.muted ? selectionFg : theme.textMuted}>{props.footer}</text>
         </box>
       </Show>
     </>

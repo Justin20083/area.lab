@@ -1,4 +1,5 @@
 import type { BoxRenderable, TextareaRenderable, ScrollBoxRenderable } from "@opentui/core"
+import { RGBA } from "@opentui/core"
 import { pathToFileURL } from "bun"
 import fuzzysort from "fuzzysort"
 import path from "path"
@@ -14,7 +15,7 @@ import { getScrollAcceleration } from "../../util/scroll"
 import { useTuiPaths } from "../../context/runtime"
 import { useTuiConfig } from "../../config"
 import { useLocation } from "../../context/location"
-import { useTheme, selectedForeground } from "../../context/theme"
+import { useTheme } from "../../context/theme"
 import { SplitBorder } from "../../ui/border"
 import { useTerminalDimensions } from "@opentui/solid"
 import { Locale } from "../../util/locale"
@@ -91,7 +92,9 @@ export function Autocomplete(props: {
   const project = useProject()
   const slashes = useCommandSlashes()
   const modeStack = useOpencodeModeStack()
-  const { theme } = useTheme()
+  const { theme, mode } = useTheme()
+  const selectionBg = createMemo(() => (mode() === "light" ? RGBA.fromHex("#1a1a1a") : RGBA.fromHex("#000000")))
+  const selectionFg = RGBA.fromHex("#ffffff")
   const dimensions = useTerminalDimensions()
   const frecency = useFrecency()
   const tuiConfig = useTuiConfig()
@@ -749,7 +752,7 @@ export function Autocomplete(props: {
             <box
               paddingLeft={1}
               paddingRight={1}
-              backgroundColor={index === store.selected ? theme.primary : undefined}
+              backgroundColor={index === store.selected ? selectionBg() : undefined}
               flexDirection="row"
               onMouseMove={() => {
                 setStore("input", "mouse")
@@ -764,11 +767,11 @@ export function Autocomplete(props: {
               }}
               onMouseUp={() => select()}
             >
-              <text fg={index === store.selected ? selectedForeground(theme) : theme.text} flexShrink={0}>
+              <text fg={index === store.selected ? selectionFg : theme.text} flexShrink={0}>
                 {option().display}
               </text>
               <Show when={option().description}>
-                <text fg={index === store.selected ? selectedForeground(theme) : theme.textMuted} wrapMode="none">
+                <text fg={index === store.selected ? selectionFg : theme.textMuted} wrapMode="none">
                   {" " + option().description?.trimStart()}
                 </text>
               </Show>
