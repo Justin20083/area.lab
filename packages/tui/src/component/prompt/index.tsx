@@ -1,5 +1,6 @@
 import {
   BoxRenderable,
+  RGBA,
   TextareaRenderable,
   MouseEvent,
   PasteEvent,
@@ -39,12 +40,12 @@ import type { AssistantMessage, FilePart, UserMessage } from "@opencode-ai/sdk/v
 import { Locale } from "../../util/locale"
 import { errorMessage } from "../../util/error"
 import { formatDuration } from "../../util/format"
-import { createColors, createFrames } from "../../ui/spinner"
 import { useDialog } from "../../ui/dialog"
 import { DialogProvider as DialogProviderConnect } from "../dialog-provider"
 import { DialogAlert } from "../../ui/dialog-alert"
 import { useToast } from "../../ui/toast"
 import { useKV } from "../../context/kv"
+import { abbreviateHome } from "../../runtime"
 import { DialogSkill } from "../dialog-skill"
 import { DialogWorkspaceUnavailable } from "../dialog-workspace-unavailable"
 import { useArgs } from "../../context/args"
@@ -1275,6 +1276,11 @@ export function Prompt(props: PromptProps) {
     setStore("extmarkToPartIndex", new Map())
   }
 
+  const dirLabel = createMemo(() => {
+    const dir = project.instance.directory() || paths.cwd
+    return abbreviateHome(dir, paths.home)
+  })
+
   const placeholderText = createMemo(() => {
     if (props.showPlaceholder === false) return undefined
     if (store.mode === "shell") {
@@ -1289,25 +1295,6 @@ export function Prompt(props: PromptProps) {
     return list()[store.placeholder % list().length]
   })
 
-  const spinnerDef = createMemo(() => {
-    const color = theme.textMuted
-    return {
-      frames: createFrames({
-        color,
-        style: "blocks",
-        inactiveFactor: 0.6,
-        // enableFading: false,
-        minAlpha: 0.3,
-      }),
-      color: createColors({
-        color,
-        style: "blocks",
-        inactiveFactor: 0.6,
-        // enableFading: false,
-        minAlpha: 0.3,
-      }),
-    }
-  })
   const maxHeight = createMemo(() => tuiConfig.prompt?.max_height ?? Math.max(6, Math.floor(dimensions().height / 3)))
   const moveLabelWidth = createMemo(() => Math.max(12, Math.min(44, dimensions().width - 48)))
 
@@ -1321,7 +1308,7 @@ export function Prompt(props: PromptProps) {
             paddingTop={1}
             paddingBottom={1}
             flexShrink={0}
-            backgroundColor={theme.backgroundElement}
+            backgroundColor={theme.backgroundPanel}
             flexGrow={1}
             width="100%"
           >
@@ -1399,7 +1386,7 @@ export function Prompt(props: PromptProps) {
                 }, 0)
               }}
               onMouseDown={(r: MouseEvent) => r.target?.focus()}
-              focusedBackgroundColor={theme.backgroundElement}
+              focusedBackgroundColor={theme.backgroundPanel}
               cursorColor={props.disabled ? theme.backgroundElement : theme.text}
               cursorStyle={tuiConfig.cursor}
               syntaxStyle={syntax()}
@@ -1414,6 +1401,10 @@ export function Prompt(props: PromptProps) {
             </Show>
           </box>
         </box>
+        <box flexDirection="column" flexShrink={0} paddingTop={1}>
+          <text fg={theme.textMuted}>{local.model.parsed().model}</text>
+          <text fg={theme.textMuted}>{dirLabel()}</text>
+        </box>
         <box width="100%" flexDirection="row" justifyContent="space-between" paddingTop={1}>
           <Switch>
             <Match when={status().type !== "idle"}>
@@ -1424,13 +1415,11 @@ export function Prompt(props: PromptProps) {
                 justifyContent={status().type === "retry" ? "space-between" : "flex-start"}
               >
                 <box flexShrink={0} flexDirection="row" gap={1}>
-                  <box marginLeft={1}>
-                    <Show when={kv.get("animations_enabled", true)} fallback={<text fg={theme.textMuted}>[⋯]</text>}>
-                      <spinner color={spinnerDef().color} frames={spinnerDef().frames} interval={40} />
-                    </Show>
-                  </box>
+                  <text fg={RGBA.fromHex("#7dd3fc")} flexShrink={0}>
+                    ::
+                  </text>
                   <Show when={status().type !== "retry"}>
-                    <text fg={theme.text}>Working</text>
+                    <text fg={RGBA.fromHex("#7dd3fc")}>Working</text>
                   </Show>
                   <box flexDirection="row" gap={1} flexShrink={0}>
                     {(() => {
