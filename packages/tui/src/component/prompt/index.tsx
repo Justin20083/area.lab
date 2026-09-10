@@ -45,7 +45,6 @@ import { DialogProvider as DialogProviderConnect } from "../dialog-provider"
 import { DialogAlert } from "../../ui/dialog-alert"
 import { useToast } from "../../ui/toast"
 import { useKV } from "../../context/kv"
-import { abbreviateHome } from "../../runtime"
 import { DialogSkill } from "../dialog-skill"
 import { DialogWorkspaceUnavailable } from "../dialog-workspace-unavailable"
 import { useArgs } from "../../context/args"
@@ -1277,12 +1276,6 @@ export function Prompt(props: PromptProps) {
     setStore("extmarkToPartIndex", new Map())
   }
 
-  const dirLabel = createMemo(() => {
-    const dir = project.instance.directory() || paths.cwd
-    return abbreviateHome(dir, paths.home)
-  })
-  const branchLabel = createMemo(() => sync.data.vcs?.branch)
-
   const placeholderText = createMemo(() => {
     if (props.showPlaceholder === false) return undefined
     if (store.mode === "shell") {
@@ -1411,13 +1404,7 @@ export function Prompt(props: PromptProps) {
             />
             </box>
             <box flexDirection="row" flexShrink={0} paddingTop={1} gap={1} justifyContent="space-between">
-              <box flexDirection="column" flexShrink={0}>
-                <text fg={theme.textMuted}>{Locale.titlecase(local.permission.mode)}</text>
-                <text fg={theme.textMuted}>
-                  {dirLabel()}
-                  <Show when={branchLabel()}>{(branch) => ` · ${branch()}`}</Show>
-                </text>
-              </box>
+              <text fg={theme.textMuted}>{Locale.titlecase(local.permission.mode)}</text>
               <Show when={hasRightContent()}>
                 <box flexDirection="row" gap={1} alignItems="center">
                   {props.right}
