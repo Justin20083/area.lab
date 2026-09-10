@@ -12,6 +12,9 @@ import { useEditorContext } from "../context/editor"
 import { useTerminalDimensions } from "@opentui/solid"
 import { useTuiConfig } from "../config"
 import { useCommandShortcut } from "../keymap"
+import { useTuiPaths } from "../context/runtime"
+import { abbreviateHome } from "../runtime"
+import { useHomeSessionDestination } from "./home/session-destination"
 import { useKV } from "../context/kv"
 import { useTheme } from "../context/theme"
 import { useDialog } from "../ui/dialog"
@@ -38,6 +41,13 @@ export function Home() {
   const tuiConfig = useTuiConfig()
   const agentShortcut = useCommandShortcut("agent.cycle")
   const paletteShortcut = useCommandShortcut("command.palette.show")
+  const paths = useTuiPaths()
+  const destination = useHomeSessionDestination()
+  const cornerDir = createMemo(() => {
+    const selected = destination?.destination()
+    const dir = selected && selected.type !== "new" ? selected.directory : paths.cwd
+    return abbreviateHome(dir, paths.home)
+  })
   const kv = useKV()
   const { theme } = useTheme()
   const dialog = useDialog()
@@ -163,6 +173,7 @@ export function Home() {
               right={<pluginRuntime.Slot name="home_prompt_right" />}
               placeholders={placeholder}
               hideShortcuts
+              hideMeta
             />
           </pluginRuntime.Slot>
         </box>
@@ -176,18 +187,25 @@ export function Home() {
       <box
         width="100%"
         flexDirection="row"
-        justifyContent="flex-end"
+        justifyContent="space-between"
+        paddingLeft={2}
         paddingRight={2}
         paddingBottom={1}
         gap={2}
         flexShrink={0}
       >
-        <text fg={theme.text}>
-          {agentShortcut()} <span style={{ fg: theme.textMuted }}>agents</span>
-        </text>
-        <text fg={theme.text}>
-          {paletteShortcut()} <span style={{ fg: theme.textMuted }}>commands</span>
-        </text>
+        <box flexDirection="column" flexShrink={0}>
+          <text fg={theme.textMuted}>{local.model.parsed().model}</text>
+          <text fg={theme.textMuted}>{cornerDir()}</text>
+        </box>
+        <box flexDirection="row" gap={2} alignItems="flex-end" flexShrink={0}>
+          <text fg={theme.text}>
+            {agentShortcut()} <span style={{ fg: theme.textMuted }}>agents</span>
+          </text>
+          <text fg={theme.text}>
+            {paletteShortcut()} <span style={{ fg: theme.textMuted }}>commands</span>
+          </text>
+        </box>
       </box>
     </HomeSessionDestinationProvider>
   )

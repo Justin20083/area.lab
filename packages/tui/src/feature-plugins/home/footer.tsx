@@ -1,28 +1,8 @@
 import type { TuiPlugin, TuiPluginApi } from "@opencode-ai/plugin/tui"
 import type { BuiltinTuiPlugin } from "../builtins"
 import { createMemo, Match, Show, Switch } from "solid-js"
-import { abbreviateHome } from "../../runtime"
-import { useTuiPaths } from "../../context/runtime"
-import { useHomeSessionDestination } from "../../routes/home/session-destination"
 
 const id = "internal:home-footer"
-
-function Directory(props: { api: TuiPluginApi }) {
-  const theme = () => props.api.theme.current
-  const destination = useHomeSessionDestination()
-  const paths = useTuiPaths()
-  const dir = createMemo(() => {
-    const selected = destination?.destination()
-    if (!selected || selected.type === "new") return
-    const out = abbreviateHome(selected.directory, paths.home)
-    const branch =
-      selected.directory === (props.api.state.path.directory || paths.cwd) ? props.api.state.vcs?.branch : undefined
-    if (branch) return out + ":" + branch
-    return out
-  })
-
-  return <Show when={dir()}>{(value) => <text fg={theme().textMuted}>{value()}</text>}</Show>
-}
 
 function Mcp(props: { api: TuiPluginApi }) {
   const theme = () => props.api.theme.current
@@ -63,7 +43,6 @@ function View(props: { api: TuiPluginApi }) {
       flexShrink={0}
       gap={2}
     >
-      <Directory api={props.api} />
       <Mcp api={props.api} />
       <box flexGrow={1} />
     </box>

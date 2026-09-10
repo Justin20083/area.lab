@@ -62,6 +62,7 @@ export type PromptProps = {
   visible?: boolean
   disabled?: boolean
   hideShortcuts?: boolean
+  hideMeta?: boolean
   onSubmit?: () => void
   ref?: (ref: PromptRef | undefined) => void
   hint?: JSX.Element
@@ -1390,20 +1391,22 @@ export function Prompt(props: PromptProps) {
               cursorStyle={tuiConfig.cursor}
               syntaxStyle={syntax()}
             />
+              <Show when={status().type !== "idle"}>
+                <box flexShrink={0} paddingLeft={2}>
+                  <text fg={theme.textMuted}>
+                    <span style={{ fg: theme.text }}>esc</span> to stop
+                  </text>
+                </box>
+              </Show>
             </box>
-            <Show when={status().type !== "idle"}>
-              <box flexDirection="row" justifyContent="flex-end" flexShrink={0} paddingTop={1}>
-                <text fg={theme.textMuted}>
-                  <span style={{ fg: theme.text }}>esc</span> to stop
-                </text>
-              </box>
-            </Show>
           </box>
         </box>
-        <box flexDirection="column" flexShrink={0} paddingTop={1}>
-          <text fg={theme.textMuted}>{local.model.parsed().model}</text>
-          <text fg={theme.textMuted}>{dirLabel()}</text>
-        </box>
+        <Show when={!props.hideMeta}>
+          <box flexDirection="column" flexShrink={0} paddingTop={1}>
+            <text fg={theme.textMuted}>{local.model.parsed().model}</text>
+            <text fg={theme.textMuted}>{dirLabel()}</text>
+          </box>
+        </Show>
         <box width="100%" flexDirection="row" justifyContent="space-between" paddingTop={1}>
           <Switch>
             <Match when={status().type !== "idle"}>
