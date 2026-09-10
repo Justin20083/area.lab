@@ -1343,6 +1343,7 @@ export function Prompt(props: PromptProps) {
             paddingLeft={2}
             paddingRight={2}
             paddingTop={1}
+            paddingBottom={1}
             flexShrink={0}
             backgroundColor={theme.backgroundElement}
             flexGrow={1}

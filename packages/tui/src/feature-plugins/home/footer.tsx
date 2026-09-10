@@ -51,16 +51,6 @@ function Mcp(props: { api: TuiPluginApi }) {
   )
 }
 
-function Version(props: { api: TuiPluginApi }) {
-  const theme = () => props.api.theme.current
-
-  return (
-    <box flexShrink={0}>
-      <text fg={theme().textMuted}>{props.api.app.version}</text>
-    </box>
-  )
-}
-
 function View(props: { api: TuiPluginApi }) {
   return (
     <box
@@ -76,7 +66,6 @@ function View(props: { api: TuiPluginApi }) {
       <Directory api={props.api} />
       <Mcp api={props.api} />
       <box flexGrow={1} />
-      <Version api={props.api} />
     </box>
   )
 }

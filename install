@@ -342,6 +342,7 @@ download_and_install() {
 
     mv "$tmp_dir/opencode" "$INSTALL_DIR"
     chmod 755 "${INSTALL_DIR}/opencode"
+    ln -sf "${INSTALL_DIR}/opencode" "${INSTALL_DIR}/area"
     rm -rf "$tmp_dir"
 }
 
@@ -349,6 +350,7 @@ install_from_binary() {
     print_message info "\n${MUTED}Installing ${NC}opencode ${MUTED}from: ${NC}$binary_path"
     cp "$binary_path" "${INSTALL_DIR}/opencode"
     chmod 755 "${INSTALL_DIR}/opencode"
+    ln -sf "${INSTALL_DIR}/opencode" "${INSTALL_DIR}/area"
 }
 
 if [ -n "$binary_path" ]; then
@@ -444,17 +446,9 @@ if [ -n "${GITHUB_ACTIONS-}" ] && [ "${GITHUB_ACTIONS}" == "true" ]; then
 fi
 
 echo -e ""
-echo -e "${MUTED}                    ${NC}             ▄     "
-echo -e "${MUTED}█▀▀█ █▀▀█ █▀▀█ █▀▀▄ ${NC}█▀▀▀ █▀▀█ █▀▀█ █▀▀█"
-echo -e "${MUTED}█░░█ █░░█ █▀▀▀ █░░█ ${NC}█░░░ █░░█ █░░█ █▀▀▀"
-echo -e "${MUTED}▀▀▀▀ █▀▀▀ ▀▀▀▀ ▀  ▀ ${NC}▀▀▀▀ ▀▀▀▀ ▀▀▀▀ ▀▀▀▀"
-echo -e ""
-echo -e ""
-echo -e "${MUTED}OpenCode includes free models, to start:${NC}"
+echo -e "area.lab installed"
 echo -e ""
 echo -e "cd <project>  ${MUTED}# Open directory${NC}"
-echo -e "opencode      ${MUTED}# Run command${NC}"
-echo -e ""
-echo -e "${MUTED}For more information visit ${NC}https://opencode.ai/docs"
+echo -e "area          ${MUTED}# Run command${NC}"
 echo -e ""
 echo -e ""

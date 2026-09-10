@@ -17,7 +17,7 @@
   },
   "bin": {
     "opencode": "./bin/opencode",
-    "area.lab": "./bin/opencode"
+    "area": "./bin/opencode"
   },
   "exports": {
     "./*": "./src/*.ts"
