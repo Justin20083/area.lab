@@ -1,5 +1,6 @@
 import { Prompt, type PromptRef } from "../component/prompt"
 import { createEffect, createMemo, createSignal, onCleanup, onMount, Show } from "solid-js"
+import { TextAttributes } from "@opentui/core"
 import { useSync } from "../context/sync"
 import { Toast } from "../ui/toast"
 import { useArgs } from "../context/args"
@@ -10,8 +11,12 @@ import { usePluginRuntime } from "../plugin/runtime"
 import { useEditorContext } from "../context/editor"
 import { useTerminalDimensions } from "@opentui/solid"
 import { useTuiConfig } from "../config"
+import { useCommandShortcut } from "../keymap"
 import { useKV } from "../context/kv"
 import { useTheme } from "../context/theme"
+import { useDialog } from "../ui/dialog"
+import { DialogPrompt } from "../ui/dialog-prompt"
+import { DialogSelect } from "../ui/dialog-select"
 import { HomeSessionDestinationProvider } from "./home/session-destination"
 
 let once = false
@@ -31,9 +36,18 @@ export function Home() {
   const editor = useEditorContext()
   const dimensions = useTerminalDimensions()
   const tuiConfig = useTuiConfig()
+  const agentShortcut = useCommandShortcut("agent.cycle")
+  const paletteShortcut = useCommandShortcut("command.palette.show")
   const kv = useKV()
   const { theme } = useTheme()
+  const dialog = useDialog()
   const [tipVisible, setTipVisible] = createSignal(false)
+  const userName = createMemo(() => kv.get("user_name", ""))
+  const greeting = createMemo(() => {
+    const name = userName()
+    if (!name) return ""
+    return kv.get("user_language", "es") === "en" ? `Hello, ${name}.` : `Hola, ${name}.`
+  })
   const promptMaxWidth = createMemo(() => {
     const configured = tuiConfig.prompt?.max_width
     if (configured === "auto") return Math.max(75, Math.floor(dimensions().width * 0.7))
@@ -50,6 +64,42 @@ export function Home() {
       kv.set("one_time_tip_seen", true)
     }, 5000)
     onCleanup(() => clearTimeout(timer))
+  })
+
+  async function onboard() {
+    if (kv.get("user_name")) return
+    const lang = await new Promise<"es" | "en" | null>((resolve) => {
+      dialog.replace(
+        () => (
+          <DialogSelect<string>
+            title="Idioma / Language"
+            options={[
+              { title: "Español", value: "es" },
+              { title: "English", value: "en" },
+            ]}
+            onSelect={(option) => {
+              dialog.clear()
+              resolve(option.value === "en" ? "en" : "es")
+            }}
+          />
+        ),
+        () => resolve(null),
+      )
+    })
+    if (!lang) return
+    kv.set("user_language", lang)
+    const name = await DialogPrompt.show(
+      dialog,
+      lang === "en" ? "What is your name?" : "¿Cómo te llamas?",
+      { placeholder: lang === "en" ? "Your name" : "Tu nombre" },
+    )
+    const trimmed = name?.trim()
+    if (!trimmed) return
+    kv.set("user_name", trimmed)
+  }
+
+  onMount(() => {
+    void onboard()
   })
 
   const bind = (r: PromptRef | undefined) => {
@@ -83,6 +133,15 @@ export function Home() {
       <box flexGrow={1} alignItems="center" paddingLeft={2} paddingRight={2}>
         <box flexGrow={1} minHeight={0} />
         <box height={4} minHeight={0} flexShrink={1} />
+        <Show when={greeting()}>
+          {(text) => (
+            <box width="100%" maxWidth={promptMaxWidth()} flexShrink={0} paddingTop={1} paddingBottom={1}>
+              <text fg={theme.textMuted} attributes={TextAttributes.BOLD}>
+                {text()}
+              </text>
+            </box>
+          )}
+        </Show>
         <Show when={tipVisible()}>
           <box width="100%" maxWidth={promptMaxWidth()} flexShrink={0} paddingBottom={1}>
             <box flexDirection="row">
@@ -99,7 +158,12 @@ export function Home() {
         </Show>
         <box width="100%" maxWidth={promptMaxWidth()} zIndex={1000} paddingTop={1} flexShrink={0}>
           <pluginRuntime.Slot name="home_prompt" mode="replace" ref={bind}>
-            <Prompt ref={bind} right={<pluginRuntime.Slot name="home_prompt_right" />} placeholders={placeholder} />
+            <Prompt
+              ref={bind}
+              right={<pluginRuntime.Slot name="home_prompt_right" />}
+              placeholders={placeholder}
+              hideShortcuts
+            />
           </pluginRuntime.Slot>
         </box>
         <pluginRuntime.Slot name="home_bottom" />
@@ -108,6 +172,22 @@ export function Home() {
       </box>
       <box width="100%" flexShrink={0}>
         <pluginRuntime.Slot name="home_footer" mode="single_winner" />
+      </box>
+      <box
+        width="100%"
+        flexDirection="row"
+        justifyContent="flex-end"
+        paddingRight={2}
+        paddingBottom={1}
+        gap={2}
+        flexShrink={0}
+      >
+        <text fg={theme.text}>
+          {agentShortcut()} <span style={{ fg: theme.textMuted }}>agents</span>
+        </text>
+        <text fg={theme.text}>
+          {paletteShortcut()} <span style={{ fg: theme.textMuted }}>commands</span>
+        </text>
       </box>
     </HomeSessionDestinationProvider>
   )
