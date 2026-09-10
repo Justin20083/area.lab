@@ -1282,7 +1282,10 @@ export function Prompt(props: PromptProps) {
       const example = shell()[store.placeholder % shell().length]
       return `Run a command… "${example}"`
     }
-    if (!list().length) return undefined
+    if (!list().length) {
+      if (props.sessionID) return "Add a follow-up"
+      return undefined
+    }
     return list()[store.placeholder % list().length]
   })
 
@@ -1402,6 +1405,13 @@ export function Prompt(props: PromptProps) {
               syntaxStyle={syntax()}
             />
             </box>
+            <Show when={status().type !== "idle"}>
+              <box flexDirection="row" justifyContent="flex-end" flexShrink={0} paddingTop={1}>
+                <text fg={theme.textMuted}>
+                  <span style={{ fg: theme.text }}>esc</span> to stop
+                </text>
+              </box>
+            </Show>
           </box>
         </box>
         <box width="100%" flexDirection="row" justifyContent="space-between" paddingTop={1}>
@@ -1419,6 +1429,9 @@ export function Prompt(props: PromptProps) {
                       <spinner color={spinnerDef().color} frames={spinnerDef().frames} interval={40} />
                     </Show>
                   </box>
+                  <Show when={status().type !== "retry"}>
+                    <text fg={theme.text}>Working</text>
+                  </Show>
                   <box flexDirection="row" gap={1} flexShrink={0}>
                     {(() => {
                       const retry = createMemo(() => {
@@ -1478,12 +1491,6 @@ export function Prompt(props: PromptProps) {
                     })()}
                   </box>
                 </box>
-                <text fg={store.interrupt > 0 ? theme.primary : theme.text}>
-                  esc{" "}
-                  <span style={{ fg: store.interrupt > 0 ? theme.primary : theme.textMuted }}>
-                    {store.interrupt > 0 ? "again to interrupt" : "interrupt"}
-                  </span>
-                </text>
               </box>
             </Match>
             <Match when={workspace.notice()}>
