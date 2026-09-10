@@ -1,5 +1,5 @@
 import { Prompt, type PromptRef } from "../component/prompt"
-import { createEffect, createMemo, createSignal, onMount } from "solid-js"
+import { createEffect, createMemo, createSignal, onCleanup, onMount, Show } from "solid-js"
 import { useSync } from "../context/sync"
 import { Toast } from "../ui/toast"
 import { useArgs } from "../context/args"
@@ -10,11 +10,13 @@ import { usePluginRuntime } from "../plugin/runtime"
 import { useEditorContext } from "../context/editor"
 import { useTerminalDimensions } from "@opentui/solid"
 import { useTuiConfig } from "../config"
+import { useKV } from "../context/kv"
+import { useTheme } from "../context/theme"
 import { HomeSessionDestinationProvider } from "./home/session-destination"
 
 let once = false
 const placeholder = {
-  normal: ["Fix a TODO in the codebase", "What is the tech stack of this project?", "Fix broken tests"],
+  normal: ["Plan, search, build anything"],
   shell: ["ls -la", "git status", "pwd"],
 }
 
@@ -29,6 +31,9 @@ export function Home() {
   const editor = useEditorContext()
   const dimensions = useTerminalDimensions()
   const tuiConfig = useTuiConfig()
+  const kv = useKV()
+  const { theme } = useTheme()
+  const [tipVisible, setTipVisible] = createSignal(false)
   const promptMaxWidth = createMemo(() => {
     const configured = tuiConfig.prompt?.max_width
     if (configured === "auto") return Math.max(75, Math.floor(dimensions().width * 0.7))
@@ -38,6 +43,13 @@ export function Home() {
 
   onMount(() => {
     editor.clearSelection()
+    if (kv.get("one_time_tip_seen")) return
+    setTipVisible(true)
+    const timer = setTimeout(() => {
+      setTipVisible(false)
+      kv.set("one_time_tip_seen", true)
+    }, 5000)
+    onCleanup(() => clearTimeout(timer))
   })
 
   const bind = (r: PromptRef | undefined) => {
@@ -71,6 +83,20 @@ export function Home() {
       <box flexGrow={1} alignItems="center" paddingLeft={2} paddingRight={2}>
         <box flexGrow={1} minHeight={0} />
         <box height={4} minHeight={0} flexShrink={1} />
+        <Show when={tipVisible()}>
+          <box width="100%" maxWidth={promptMaxWidth()} flexShrink={0} paddingBottom={1}>
+            <box flexDirection="row">
+              <text fg={theme.warning} flexShrink={0}>
+                ● Tip{" "}
+              </text>
+              <text flexShrink={1} wrapMode="word">
+                <span style={{ fg: theme.textMuted }}>Use </span>
+                <span style={{ fg: theme.text }}>/redo</span>
+                <span style={{ fg: theme.textMuted }}> to restore previously undone messages and file changes</span>
+              </text>
+            </box>
+          </box>
+        </Show>
         <box width="100%" maxWidth={promptMaxWidth()} zIndex={1000} paddingTop={1} flexShrink={0}>
           <pluginRuntime.Slot name="home_prompt" mode="replace" ref={bind}>
             <Prompt ref={bind} right={<pluginRuntime.Slot name="home_prompt_right" />} placeholders={placeholder} />
