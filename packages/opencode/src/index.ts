@@ -1,41 +1,31 @@
-import yargs from "yargs"
 import { hideBin } from "yargs/helpers"
-import { RunCommand } from "./cli/cmd/run"
-import { GenerateCommand } from "./cli/cmd/generate"
-import { ConsoleCommand } from "./cli/cmd/account"
-import { ProvidersCommand } from "./cli/cmd/providers"
-import { AgentCommand } from "./cli/cmd/agent"
-import { UpgradeCommand } from "./cli/cmd/upgrade"
-import { UninstallCommand } from "./cli/cmd/uninstall"
-import { ModelsCommand } from "./cli/cmd/models"
-import { UI } from "./cli/ui"
 import { InstallationVersion } from "@opencode-ai/core/installation/version"
-import { FormatError } from "./cli/error"
-import { ServeCommand } from "./cli/cmd/serve"
-import { DebugCommand } from "./cli/cmd/debug"
-import { StatsCommand } from "./cli/cmd/stats"
-import { McpCommand } from "./cli/cmd/mcp"
-import { GithubCommand } from "./cli/cmd/github"
-import { ExportCommand } from "./cli/cmd/export"
-import { ImportCommand } from "./cli/cmd/import"
-import { AttachCommand } from "./cli/cmd/attach"
-import { TuiThreadCommand } from "./cli/cmd/tui"
-import { AcpCommand } from "./cli/cmd/acp"
 import { EOL } from "os"
-import { WebCommand } from "./cli/cmd/web"
-import { PrCommand } from "./cli/cmd/pr"
-import { SessionCommand } from "./cli/cmd/session"
-import { DbCommand } from "./cli/cmd/db"
-import { errorMessage } from "./util/error"
-import { PluginCommand } from "./cli/cmd/plug"
-import { Heap } from "./cli/heap"
 
 const args = hideBin(process.argv)
+
+// Fast path: --version alone never needs yargs, effect, or any command
+// module. Everything heavy is imported dynamically below this check.
+if (args.length === 1 && (args[0] === "--version" || args[0] === "-v")) {
+  console.log(InstallationVersion)
+  process.exit(0)
+}
+
+const [{ default: yargs }, { UI }, { FormatError }, { errorMessage }, { Heap }, commands] = await Promise.all([
+  import("yargs"),
+  import("./cli/ui"),
+  import("./cli/error"),
+  import("./util/error"),
+  import("./cli/heap"),
+  import("./cli/commands"),
+])
+const { LAZY_COMMANDS, lazy, loadDefaultCommand, wantsDefaultCommand } = commands
 
 function show(out: string) {
   const text = out.trimStart()
   if (!text.startsWith("opencode ")) {
-    process.stderr.write(UI.logo() + EOL + EOL)
+    // The logo is branding for humans; keep piped output parseable.
+    if (process.stderr.isTTY) process.stderr.write(UI.logo() + EOL + EOL)
     process.stderr.write(text + EOL)
     return
   }
@@ -78,29 +68,19 @@ const cli = yargs(args)
   })
   .usage("")
   .completion("completion", "generate shell completion script")
-  .command(AcpCommand)
-  .command(McpCommand)
-  .command(TuiThreadCommand)
-  .command(AttachCommand)
-  .command(RunCommand)
-  .command(GenerateCommand)
-  .command(DebugCommand)
-  .command(ConsoleCommand)
-  .command(ProvidersCommand)
-  .command(AgentCommand)
-  .command(UpgradeCommand)
-  .command(UninstallCommand)
-  .command(ServeCommand)
-  .command(WebCommand)
-  .command(ModelsCommand)
-  .command(StatsCommand)
-  .command(ExportCommand)
-  .command(ImportCommand)
-  .command(GithubCommand)
-  .command(PrCommand)
-  .command(SessionCommand)
-  .command(PluginCommand)
-  .command(DbCommand)
+
+for (const entry of LAZY_COMMANDS) {
+  // The default ($0) command: yargs does not await an async $0 builder on
+  // the top-level help path, so preload and register it eagerly only when it
+  // will actually handle this invocation. Everything else stays lazy.
+  if (entry.command.startsWith("$0") && wantsDefaultCommand(args)) {
+    cli.command(await loadDefaultCommand())
+  } else {
+    cli.command(lazy(entry))
+  }
+}
+
+cli
   .fail((msg, err) => {
     if (
       msg?.startsWith("Unknown argument") ||
@@ -117,14 +97,11 @@ const cli = yargs(args)
 
 try {
   if (args.includes("-h") || args.includes("--help")) {
-    await cli.parse(args, (err: Error | undefined, _argv: unknown, out: string) => {
-      if (err) throw err
-      if (!out) return
-      show(out)
-    })
-  } else {
-    await cli.parse()
+    // yargs renders help to stdout natively (keeps pipes parseable);
+    // the logo stays on stderr for humans only.
+    if (process.stderr.isTTY) process.stderr.write(UI.logo() + EOL + EOL)
   }
+  await cli.parse()
 } catch (e) {
   const formatted = FormatError(e)
   if (formatted) UI.error(formatted)

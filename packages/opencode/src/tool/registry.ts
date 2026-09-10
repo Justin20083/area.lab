@@ -27,6 +27,12 @@ import { Provider } from "@/provider/provider"
 
 import { WebSearchTool } from "./websearch"
 import { LspTool } from "./lsp"
+import { ComputerScreenshotTool } from "./computer/screenshot"
+import { ComputerElementsTool } from "./computer/elements"
+import { ComputerClickTool } from "./computer/click"
+import { ComputerTypeTool } from "./computer/type"
+import { ComputerKeyTool } from "./computer/key"
+import { resolve as resolveComputerMode, supportsVision as computerSupportsVision } from "../computer-use/mode"
 import * as Truncate from "./truncate"
 import { ApplyPatchTool } from "./apply_patch"
 import { Glob } from "@opencode-ai/core/util/glob"
@@ -72,6 +78,7 @@ type State = {
   builtin: Tool.Def[]
   task: TaskDef
   read: ReadDef
+  computerVision: Record<string, boolean>
 }
 
 export interface Interface {
@@ -105,6 +112,12 @@ const layer = Layer.effect(
     const todo = yield* TodoWriteTool
     const lsptool = yield* LspTool
     const plan = yield* PlanExitTool
+    const provider = yield* Provider.Service
+    const computerScreenshot = yield* ComputerScreenshotTool
+    const computerElements = yield* ComputerElementsTool
+    const computerClick = yield* ComputerClickTool
+    const computerType = yield* ComputerTypeTool
+    const computerKey = yield* ComputerKeyTool
     const webfetch = yield* WebFetchTool
     const websearch = yield* WebSearchTool
     const shell = yield* ShellTool
@@ -203,8 +216,10 @@ const layer = Layer.effect(
           }
         }
 
-        yield* config.get()
+        const info = yield* config.get()
         const questionEnabled = ["app", "cli", "desktop"].includes(flags.client) || flags.enableQuestionTool
+        const computerPref = info.computer_use?.mode ?? "off"
+        const computerEnabled = computerPref !== "off"
 
         const tool = yield* Effect.all({
           invalid: Tool.init(invalid),
@@ -223,6 +238,11 @@ const layer = Layer.effect(
           question: Tool.init(question),
           lsp: Tool.init(lsptool),
           plan: Tool.init(plan),
+          computerScreenshot: Tool.init(computerScreenshot),
+          computerElements: Tool.init(computerElements),
+          computerClick: Tool.init(computerClick),
+          computerType: Tool.init(computerType),
+          computerKey: Tool.init(computerKey),
           ...(codeModeTool ? { execute: Tool.init(codeModeTool) } : {}),
         })
 
@@ -246,9 +266,19 @@ const layer = Layer.effect(
             ...(tool.execute ? [tool.execute] : []),
             ...(flags.experimentalLspTool ? [tool.lsp] : []),
             ...(flags.experimentalPlanMode && flags.client === "cli" ? [tool.plan] : []),
+            ...(computerEnabled
+              ? [
+                  tool.computerScreenshot,
+                  tool.computerElements,
+                  tool.computerClick,
+                  tool.computerType,
+                  tool.computerKey,
+                ]
+              : []),
           ],
           task: tool.task,
           read: tool.read,
+          computerVision: {},
         }
       }),
     )
@@ -289,10 +319,32 @@ const layer = Layer.effect(
     })
 
     const tools: Interface["tools"] = Effect.fn("ToolRegistry.tools")(function* (input) {
+      const computer = yield* Effect.gen(function* () {
+        const pref = (yield* config.get()).computer_use?.mode ?? "off"
+        if (pref === "off") return "off" as const
+        const key = `${input.providerID}/${input.modelID}`
+        const cached = (yield* InstanceState.get(state)).computerVision[key]
+        if (cached !== undefined) return resolveComputerMode(pref, cached)
+        const vision = yield* provider.getModel(input.providerID, input.modelID).pipe(
+          Effect.map((model) => computerSupportsVision(model.capabilities)),
+          Effect.catch(() => Effect.succeed(pref === "vision")),
+        )
+        ;(yield* InstanceState.get(state)).computerVision[key] = vision
+        return resolveComputerMode(pref, vision)
+      })
       const filtered = (yield* all()).filter((tool) => {
         if (tool.id === WebSearchTool.id) {
           return webSearchEnabled(input.providerID, { exa: flags.enableExa, parallel: flags.enableParallel })
         }
+
+        if (tool.id === ComputerScreenshotTool.id) return computer === "vision"
+        if (tool.id === ComputerElementsTool.id) return computer === "text"
+        if (
+          tool.id === ComputerClickTool.id ||
+          tool.id === ComputerTypeTool.id ||
+          tool.id === ComputerKeyTool.id
+        )
+          return computer !== "off"
 
         const usePatch =
           input.modelID.includes("gpt-") && !input.modelID.includes("oss") && !input.modelID.includes("gpt-4")

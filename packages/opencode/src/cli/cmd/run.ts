@@ -275,7 +275,7 @@ export const RunCommand = effectCmd({
       const thinking = interactive ? (args.thinking ?? true) : (args.thinking ?? false)
       const die = (message: string): never => {
         UI.error(message)
-        process.exit(1)
+        process.exit(2)
       }
       const dieInteractive = (error: unknown): never => {
         if (error instanceof Error && error.message === INTERACTIVE_INPUT_ERROR) {
@@ -382,14 +382,7 @@ export const RunCommand = effectCmd({
                 process.exit(1)
               }
               if (opened.size === 0) return Buffer.alloc(0)
-              const buffer = Buffer.alloc(Number(opened.size))
-              let offset = 0
-              while (offset < buffer.length) {
-                const read = await handle.read(buffer, offset, buffer.length - offset, offset)
-                if (read.bytesRead === 0) break
-                offset += read.bytesRead
-              }
-              return buffer.subarray(0, offset)
+              return await handle.readFile()
             } finally {
               await handle.close()
             }
@@ -419,12 +412,12 @@ export const RunCommand = effectCmd({
 
       if (message.trim().length === 0 && !args.command && !interactive) {
         UI.error("You must provide a message or a command")
-        process.exit(1)
+        process.exit(2)
       }
 
       if (args.fork && !args.continue && !args.session) {
         UI.error("--fork requires --continue or --session")
-        process.exit(1)
+        process.exit(2)
       }
 
       const rules: PermissionV1.Ruleset = interactive

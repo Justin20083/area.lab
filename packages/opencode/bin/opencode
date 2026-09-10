@@ -73,7 +73,47 @@ if (!arch) {
 const base = "opencode-" + platform + "-" + arch
 const binary = platform === "windows" ? "opencode.exe" : "opencode"
 
+function avx2CacheFile() {
+  try {
+    const base = process.env.XDG_CACHE_HOME || path.join(os.homedir(), ".cache")
+    return path.join(base, "opencode", `avx2-${platform}-${arch}.json`)
+  } catch {
+    return null
+  }
+}
+
+function cachedAvx2() {
+  try {
+    const file = avx2CacheFile()
+    if (!file) return undefined
+    const parsed = JSON.parse(fs.readFileSync(file, "utf8"))
+    if (typeof parsed === "boolean") return parsed
+  } catch {
+    // No usable cache — fall through to detection.
+  }
+  return undefined
+}
+
 function supportsAvx2() {
+  if (arch !== "x64") return false
+
+  const hit = cachedAvx2()
+  if (hit !== undefined) return hit
+
+  const result = detectAvx2()
+  try {
+    const file = avx2CacheFile()
+    if (file) {
+      fs.mkdirSync(path.dirname(file), { recursive: true })
+      fs.writeFileSync(file, JSON.stringify(result))
+    }
+  } catch {
+    // Cache is best-effort; detection already succeeded.
+  }
+  return result
+}
+
+function detectAvx2() {
   if (arch !== "x64") return false
 
   if (platform === "linux") {

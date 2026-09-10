@@ -27,6 +27,7 @@ import { BoxRenderable, ScrollBoxRenderable, addDefaultParsers, TextAttributes, 
 import { Prompt, type PromptRef } from "../../component/prompt"
 import type {
   AssistantMessage,
+  Config,
   Part,
   Provider,
   ToolPart,
@@ -428,6 +429,35 @@ export function Session() {
 
   const local = useLocal()
 
+  type ComputerUsePreference = "off" | "auto" | "vision" | "text"
+  // Mirrors packages/opencode/src/computer-use/mode.ts (display only; the
+  // server owns the real resolution). Kept local so the TUI never imports
+  // server code.
+  const computerPref = createMemo(
+    () => (sync.data.config as { computer_use?: { mode?: ComputerUsePreference } }).computer_use?.mode ?? "off",
+  )
+  const computerVision = createMemo(() => {
+    const model = local.model.current()
+    if (!model) return false
+    return Model.get(providers(), model.providerID, model.modelID)?.capabilities?.input?.image ?? false
+  })
+  const computerEffective = createMemo((): "off" | "vision" | "text" => {
+    const pref = computerPref()
+    if (pref === "off") return "off"
+    if (pref === "vision") return computerVision() ? "vision" : "text"
+    if (pref === "text") return "text"
+    return computerVision() ? "vision" : "text"
+  })
+  function computerUseName(pref: ComputerUsePreference) {
+    if (pref === "text") return "Text only"
+    return pref[0].toUpperCase() + pref.slice(1)
+  }
+  const computerUseTitle = createMemo(() => {
+    const pref = computerPref()
+    const extra = pref === "auto" ? ` (${computerEffective()})` : ""
+    return `Computer use: ${computerUseName(pref)}${extra}`
+  })
+
   function enterChild(sessionID: string) {
     navigate({
       type: "session",
@@ -717,6 +747,28 @@ export function Session() {
       },
       run: () => {
         thinking.set(nextThinkingMode(thinkingMode()))
+        dialog.clear()
+      },
+    },
+    {
+      title: computerUseTitle(),
+      value: "computer.use",
+      category: "Session",
+      run: async () => {
+        const order = ["off", "auto", "vision", "text"] as const
+        const next = order[(order.indexOf(computerPref()) + 1) % order.length]
+        try {
+          // Generated SDK types lag behind the server schema; the payload is
+          // validated server-side. Regenerating the SDK removes this cast.
+          await sdk.client.config.update(
+            { config: { computer_use: { mode: next } } as unknown as Config },
+            { throwOnError: true },
+          )
+          await sync.bootstrap({ fatal: false })
+          toast.show({ message: `Computer use: ${computerUseName(next)}`, variant: "success" })
+        } catch (error) {
+          toast.show({ message: errorMessage(error), variant: "error" })
+        }
         dialog.clear()
       },
     },
@@ -1539,13 +1591,6 @@ function AssistantMessage(props: { message: AssistantMessage; parts: Part[]; las
         <Match when={props.last || final() || props.message.error?.name === "MessageAbortedError"}>
           <box ref={(el: BoxRenderable) => alwaysSeparate.add(el)} paddingLeft={3}>
             <text marginTop={1}>
-              <span
-                style={{
-                  fg: theme.textMuted,
-                }}
-              >
-                ▣{" "}
-              </span>{" "}
               <span style={{ fg: theme.text }}>{Locale.titlecase(props.message.mode)}</span>
               <span style={{ fg: theme.textMuted }}> · {model()}</span>
               <Show when={duration()}>
@@ -1644,10 +1689,11 @@ function ReasoningHeader(props: {
   encrypted?: boolean
 }) {
   const { theme } = useTheme()
+  const green = RGBA.fromHex("#2f7d44")
   const fg = () =>
     props.open
-      ? RGBA.fromValues(theme.warning.r, theme.warning.g, theme.warning.b, theme.thinkingOpacity)
-      : theme.warning
+      ? RGBA.fromValues(green.r, green.g, green.b, theme.thinkingOpacity)
+      : green
   const completed = () => {
     if (props.encrypted) return `Thought${props.duration ? ` · ${props.duration}` : ""}`
     const detail = [props.title, props.duration].filter(Boolean).join(" · ")

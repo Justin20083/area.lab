@@ -126,6 +126,14 @@ export const Info = Schema.Struct({
   }),
   layout: Schema.optional(ConfigLayoutV1.Layout).annotate({ description: "@deprecated Always uses stretch layout." }),
   permission: Schema.optional(ConfigPermissionV1.Info),
+  computer_use: Schema.optional(
+    Schema.Struct({
+      mode: Schema.optional(Schema.Literals(["off", "auto", "vision", "text"])).annotate({
+        description:
+          "Computer use (screen, mouse and keyboard control). 'off' hides the tools, 'auto' picks vision or text-only based on the active model, 'vision' and 'text' force one pipeline. Defaults to 'off'.",
+      }),
+    }),
+  ).annotate({ description: "Computer use configuration" }),
   tools: Schema.optional(Schema.Record(Schema.String, Schema.Boolean)),
   attachment: Schema.optional(ConfigAttachmentV1.Info).annotate({
     description: "Attachment processing configuration, including image size limits and resizing behavior",
