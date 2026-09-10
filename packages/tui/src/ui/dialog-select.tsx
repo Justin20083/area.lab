@@ -83,10 +83,10 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
   type VisibleAction = (Action & { label: string }) | FooterHint
 
   const dialog = useDialog()
-  const { theme, mode } = useTheme()
+  const { theme } = useTheme()
   const tuiConfig = useTuiConfig()
   const scrollAcceleration = createMemo(() => getScrollAcceleration(tuiConfig))
-  const selectionBg = createMemo(() => (mode() === "light" ? RGBA.fromHex("#1a1a1a") : RGBA.fromHex("#000000")))
+  const selectionBg = RGBA.fromHex("#235354")
   const selectionFg = RGBA.fromHex("#ffffff")
 
   const [store, setStore] = createStore({
@@ -541,7 +541,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
     return (
       <box
         flexDirection="row"
-        backgroundColor={active() ? selectionBg() : RGBA.fromInts(0, 0, 0, 0)}
+        backgroundColor={active() ? selectionBg : RGBA.fromInts(0, 0, 0, 0)}
         onMouseUp={() => triggerAction(item)}
       >
         <text
@@ -674,7 +674,7 @@ export function DialogSelect<T>(props: DialogSelectProps<T>) {
                               active()
                                 ? actionFocused()
                                   ? theme.backgroundElement
-                                  : (option.bg ?? selectionBg())
+                                  : (option.bg ?? selectionBg)
                                 : RGBA.fromInts(0, 0, 0, 0)
                             }
                           >

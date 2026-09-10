@@ -1688,12 +1688,12 @@ function ReasoningHeader(props: {
   duration?: string
   encrypted?: boolean
 }) {
-  const { theme } = useTheme()
-  const green = RGBA.fromHex("#2f7d44")
+  const { theme, mode } = useTheme()
+  const thoughtFg = createMemo(() => RGBA.fromHex(mode() === "light" ? "#235354" : "#E2F3A9"))
   const fg = () =>
     props.open
-      ? RGBA.fromValues(green.r, green.g, green.b, theme.thinkingOpacity)
-      : green
+      ? RGBA.fromValues(thoughtFg().r, thoughtFg().g, thoughtFg().b, theme.thinkingOpacity)
+      : thoughtFg()
   const completed = () => {
     if (props.encrypted) return `Thought${props.duration ? ` · ${props.duration}` : ""}`
     const detail = [props.title, props.duration].filter(Boolean).join(" · ")

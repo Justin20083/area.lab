@@ -163,7 +163,8 @@ export function Prompt(props: PromptProps) {
   const renderer = useRenderer()
   const exit = useExit()
   const dimensions = useTerminalDimensions()
-  const { theme, syntax } = useTheme()
+  const { theme, syntax, mode } = useTheme()
+  const workingFg = createMemo(() => RGBA.fromHex(mode() === "light" ? "#235354" : "#E2F3A9"))
   const kv = useKV()
   const list = createMemo(() => props.placeholders?.normal ?? [])
   const shell = createMemo(() => props.placeholders?.shell ?? [])
@@ -1417,11 +1418,11 @@ export function Prompt(props: PromptProps) {
                 justifyContent={status().type === "retry" ? "space-between" : "flex-start"}
               >
                 <box flexShrink={0} flexDirection="row" gap={1}>
-                  <text fg={RGBA.fromHex("#22c55e")} flexShrink={0}>
+                  <text fg={workingFg()} flexShrink={0}>
                     ::
                   </text>
                   <Show when={status().type !== "retry"}>
-                    <text fg={RGBA.fromHex("#22c55e")}>Working</text>
+                    <text fg={workingFg()}>Working</text>
                   </Show>
                   <box flexDirection="row" gap={1} flexShrink={0}>
                     {(() => {

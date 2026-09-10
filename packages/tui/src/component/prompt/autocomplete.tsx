@@ -92,8 +92,8 @@ export function Autocomplete(props: {
   const project = useProject()
   const slashes = useCommandSlashes()
   const modeStack = useOpencodeModeStack()
-  const { theme, mode } = useTheme()
-  const selectionBg = createMemo(() => (mode() === "light" ? RGBA.fromHex("#1a1a1a") : RGBA.fromHex("#000000")))
+  const { theme } = useTheme()
+  const selectionBg = RGBA.fromHex("#235354")
   const selectionFg = RGBA.fromHex("#ffffff")
   const dimensions = useTerminalDimensions()
   const frecency = useFrecency()
@@ -752,7 +752,7 @@ export function Autocomplete(props: {
             <box
               paddingLeft={1}
               paddingRight={1}
-              backgroundColor={index === store.selected ? selectionBg() : undefined}
+              backgroundColor={index === store.selected ? selectionBg : undefined}
               flexDirection="row"
               onMouseMove={() => {
                 setStore("input", "mouse")

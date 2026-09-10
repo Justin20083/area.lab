@@ -637,16 +637,30 @@ const layer = Layer.effect(
 
     const update = Effect.fn("Config.update")(function* (config: Info) {
       const dir = yield* InstanceState.directory
-      const file = path.join(dir, "config.json")
-      const existing = yield* loadFile(file)
-      const text = yield* readConfigFile(file)
-      const original = text ? ConfigParse.jsonc(text, file) : writable(existing)
-      yield* fs
-        .writeFileString(
-          file,
-          JSON.stringify(mergeDeep(isRecord(original) ? original : writable(existing), writable(config)), null, 2),
-        )
-        .pipe(Effect.orDie)
+      const patch = writable(config)
+      // Project config is read from opencode.json(c); config.json is legacy
+      // global-only and writing it would be a dead write.
+      const jsonc = path.join(dir, "opencode.jsonc")
+      if (existsSync(jsonc)) {
+        const before = (yield* readConfigFile(jsonc)) ?? "{}"
+        const updated = patchJsonc(before, patch)
+        yield* decodeConfig(ConfigParse.jsonc(updated, jsonc), jsonc)
+        if (updated !== before) yield* fs.writeFileString(jsonc, updated).pipe(Effect.orDie)
+      } else {
+        const file = path.join(dir, "opencode.json")
+        const existing = yield* loadFile(file)
+        const text = yield* readConfigFile(file)
+        const original = text ? ConfigParse.jsonc(text, file) : writable(existing)
+        yield* fs
+          .writeFileString(
+            file,
+            JSON.stringify(mergeDeep(isRecord(original) ? original : writable(existing), patch), null, 2),
+          )
+          .pipe(Effect.orDie)
+      }
+      // Drop the cached state so subsequent reads (e.g. config.get after a
+      // palette toggle) observe the write instead of stale data.
+      yield* InstanceState.invalidate(state)
     })
 
     const invalidate = Effect.fn("Config.invalidate")(function* () {
