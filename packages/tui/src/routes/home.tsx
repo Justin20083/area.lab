@@ -152,7 +152,7 @@ export function Home() {
           )}
         </Show>
         <box width="100%" flexShrink={0} paddingBottom={1} flexDirection="column">
-          <text fg={theme.text}>Area Agent</text>
+          <text fg={theme.text}>Agent Code</text>
           <text fg={theme.textMuted}>
             v{InstallationVersion}-{headerDate()}
           </text>
