@@ -81,7 +81,7 @@ function readPalette(variant: ThemeVariant): PaletteInput {
       warning: palette.warning,
       error: palette.error,
       info: palette.info,
-      interactive: palette.interactive ?? palette.primary,
+      interactive: palette.interactive ?? palette.accent ?? palette.primary,
       diffAdd: palette.diffAdd ?? shift(palette.success, { c: 0.55, l: 0.14 }),
       diffDelete: palette.diffDelete ?? palette.error,
     }

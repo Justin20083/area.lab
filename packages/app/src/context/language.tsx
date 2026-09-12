@@ -129,35 +129,22 @@ export function loadLocaleDict(locale: Locale) {
 }
 
 function detectLocale(): Locale {
-  if (typeof navigator !== "object") return "en"
-  return detectDesktopNativeLocale(navigator.languages?.length ? navigator.languages : [navigator.language])
+  return "es" as Locale
 }
 
 export function normalizeLocale(value: string): Locale {
-  return LOCALES.includes(value as Locale) ? (value as Locale) : "en"
+  return "es" as Locale
 }
 
-function readStoredLocale() {
-  if (typeof localStorage !== "object") return
-  try {
-    const raw = localStorage.getItem("opencode.global.dat:language")
-    if (!raw) return
-    const next = JSON.parse(raw) as { locale?: string }
-    if (typeof next?.locale !== "string") return
-    return normalizeLocale(next.locale)
-  } catch {
-    return
-  }
+function readStoredLocale(): Locale | undefined {
+  return "es" as Locale
 }
 
-const warm = readStoredLocale() ?? detectLocale()
-const initialLocale =
-  warm === "en"
-    ? Promise.resolve(warm)
-    : loadDict(warm).then(
-        () => warm,
-        () => "en" as const,
-      )
+const warm: Locale = "es" as Locale
+const initialLocale = loadDict(warm).then(
+  () => warm,
+  () => "es" as const,
+)
 
 export function loadInitialLocale() {
   return initialLocale
@@ -231,8 +218,8 @@ export const { use: useLanguage, provider: LanguageProvider } = createSimpleCont
       label,
       t,
       plural,
-      setLocale(next: Locale) {
-        setStore("locale", normalizeLocale(next))
+      setLocale(_next: Locale) {
+        // selector eliminado: idioma fijo en español
       },
       setDirection(next: Direction) {
         setLayout("direction", next === localeDirection(locale()) ? undefined : next)

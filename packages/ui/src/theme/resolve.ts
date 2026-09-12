@@ -153,6 +153,17 @@ export function resolveThemeVariant(variant: ThemeVariant, isDark: boolean): Res
   tokens["surface-interactive-weak"] = interw
   tokens["surface-interactive-weak-hover"] = interb
 
+  // Accent tokens - cambian con cada tema (opencode themes -> accent)
+  const accentb = accent[isDark ? 6 : 4]
+  const accenth = accent[isDark ? 7 : 5]
+  const accentw = accent[isDark ? 5 : 3]
+  tokens["surface-accent-base"] = accentb
+  tokens["surface-accent-hover"] = accenth
+  tokens["surface-accent-weak"] = accentw
+  tokens["border-accent-base"] = accentb
+  tokens["text-accent-base"] = accent[isDark ? 10 : 9]
+  tokens["icon-accent-base"] = accent[8]
+
   tokens["surface-success-base"] = succb
   tokens["surface-success-weak"] = succw
   tokens["surface-success-strong"] = succs
@@ -487,7 +498,7 @@ function getColors(variant: ThemeVariant): ThemeColors {
       warning: variant.palette.warning,
       error: variant.palette.error,
       info: variant.palette.info,
-      interactive: variant.palette.interactive ?? variant.palette.primary,
+      interactive: variant.palette.interactive ?? variant.palette.accent ?? variant.palette.primary,
       diffAdd: variant.palette.diffAdd,
       diffDelete: variant.palette.diffDelete,
     }

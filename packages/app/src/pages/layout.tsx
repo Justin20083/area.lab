@@ -354,22 +354,12 @@ export default function LegacyLayout(props: ParentProps) {
     })
   }
 
-  function setLocale(next: Locale) {
-    if (next === language.locale()) return
-    language.setLocale(next)
-    showToast({
-      title: language.t("toast.language.title"),
-      description: language.t("toast.language.description", { language: language.label(next) }),
-    })
+  function setLocale(_next: Locale) {
+    // selector de idioma eliminado
   }
 
-  function cycleLanguage(direction = 1) {
-    const locales = language.locales
-    const currentIndex = locales.indexOf(language.locale())
-    const nextIndex = currentIndex === -1 ? 0 : (currentIndex + direction + locales.length) % locales.length
-    const next = locales[nextIndex]
-    if (!next) return
-    setLocale(next)
+  function cycleLanguage(_direction = 1) {
+    // selector de idioma eliminado
   }
 
   const useSDKNotificationToasts = () =>
@@ -1064,21 +1054,7 @@ export default function LegacyLayout(props: ParentProps) {
       })
     }
 
-    commands.push({
-      id: "language.cycle",
-      title: language.t("command.language.cycle"),
-      category: language.t("command.category.language"),
-      onSelect: () => cycleLanguage(1),
-    })
-
-    for (const locale of language.locales) {
-      commands.push({
-        id: `language.set.${locale}`,
-        title: language.t("command.language.set", { language: language.label(locale) }),
-        category: language.t("command.category.language"),
-        onSelect: () => setLocale(locale),
-      })
-    }
+    // comandos de idioma eliminados (idioma fijo es)
 
     return commands
   })
